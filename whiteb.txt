@@ -1,0 +1,139 @@
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<div dir="rtl" class="Section2">
+<span style="font-size: 22px; color: #000000">
+<div style="text-align: justify; padding: 15px">
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<link rel="stylesheet" href="st.css" type="text/css">
+<link rel="stylesheet" href="font-awesome.min.css">
+<script src="jquery.min.js"></script>
+<script src="global.js"></script>
+<script src="jquery.store.js"></script>
+<script src="match.js" charset="utf-8"></script>
+
+	<style type="text/css">
+	x {
+		display: block;
+	}
+	.answer{
+		/* Layout properties - You can change these */
+		
+		padding:3px;
+		background-color:#CCCCCC;
+		
+		/* This one should not be changed */
+		display:none;	
+	}
+	
+	.question{
+		margin: 0;
+		display: inline;
+		color: #000088;
+	}
+	.rashiq{
+		margin: 0;
+		display: inline;
+		/* color: #000088; */
+        border-bottom: 2px dashed #990000;
+	}
+	.fq{
+		margin: 0;
+		display: inline;
+		/* color: #000088; */
+        border-bottom: 2px dashed #990000;
+	}
+	.tfilaq{margin: 0;display: block;border-bottom: 2px dashed #0000FF;}
+	.tosfotq{
+		margin: 0;
+		display: inline;
+		/* color: #880088; */
+        border-bottom: 2px dashed #006600;
+	}
+	.bothq{
+		margin: 0;
+		display: inline;
+		/* color: #0011FF; */
+        border-bottom: 2px dashed #0000FF;
+	}
+label {
+float:right;
+}
+.fade {
+  position: relative;
+  height: 1.2em; /* exactly three lines */
+  width: 250px;
+  overflow: hidden;
+  display:block;
+
+}
+.fade:after {
+  content: "";
+  text-align: left;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 20%;
+  height: 1.2em;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 50%);
+}	
+	</style>
+    
+</head>
+<style type="text/css">
+body {font-weight:normal; font-size: 22px;}
+d {color: #000000 font-weight:normal}
+t1 {color: #000000;}
+t2 {color: #000000;}
+t3 {color: #000000;}
+t4 {color: #000000;}
+t5 {color: #000000;}
+t6 {color: #000000;}
+t7 {color: #000000;}
+t8 {color: #000000;}
+t9 {color: #000000;}
+t10 {color: #000000;}
+t11 {color: #000000;}
+t12 {color: #000000;}
+t14 {color: #000000;}
+t15 {color: #000000;}
+t17 {color: #000000;}
+t18 {color: #000000;}
+t20 {color: #000000;}
+t21 {color: #000000;}
+t28 {color: #000000;}
+t29 {color: #000000;}
+t30 {color: #000000;}
+t31 {color: #000000;}
+s1 {background-color: #000000; color: #ffffff; padding: 1px;}
+s2 {background-color: #000000; color: #ffffff; padding: 1px;}
+s3 {background-color: #000000; color: #ffffff; padding: 1px;}
+s4 {background-color: #000000; color: #ffffff; padding: 1px;}
+s5 {background-color: #000000; color: #ffffff; padding: 1px;}
+s6 {background-color: #000000; color: #ffffff; padding: 1px;}
+s7 {background-color: #000000; color: #ffffff; padding: 1px;}
+s8 {background-color: #000000; color: #ffffff; padding: 1px;}
+s9 {background-color: #000000; color: #ffffff; padding: 1px;}
+s10 {background-color: #000000; color: #ffffff; padding: 1px;}
+s11 {background-color: #000000; color: #ffffff; padding: 1px;}
+s12 {background-color: #000000; color: #ffffff; padding: 1px;}
+s14 {background-color: #000000; color: #ffffff; padding: 1px;}
+s15 {background-color: #000000; color: #ffffff; padding: 1px;}
+s17 {background-color: #000000; color: #ffffff; padding: 1px;}
+s18 {background-color: #000000; color: #ffffff; padding: 1px;}
+s20 {background-color: #000000; color: #ffffff; padding: 1px;}
+s21 {background-color: #000000; color: #ffffff; padding: 1px;}
+s23 {background-color: #000000; color: #ffffff; padding: 1px;}
+s28 {background-color: #000000; color: #ffffff; padding: 1px;}
+s29 {background-color: #000000; color: #ffffff; padding: 1px;}
+s30 {background-color: #000000; color: #ffffff; padding: 1px;}
+s31 {background-color: #000000; color: #ffffff; padding: 1px;}
+tos {background-color: #AAAAAA;}
+ps {font-weight: bold; color: #00000ff;padding: 10px;}
+chap {font-weight: bold; color: #0000ff;}
+sidcom1 {color:RGB(127,127,127); font-family: arial; font-size:80%;}
+sidcom2 {color:RGB(0,127,127); font-family: arial; font-size:85%;}
+sidcom4 {padding:10; margin:10;  background-color=RGB(244,244,244);}
+sid1 {font-size:95%; color:RGB(0,0,255); }
+sid2 {font-size:110%; font-weight:bold;}
+sid3 {font-weight:bold;}

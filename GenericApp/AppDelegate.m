@@ -7,6 +7,8 @@
 //
 
 #import "AppDelegate.h"
+#include "GAI.h"
+#include "GAIDictionaryBuilder.h"
 
 @interface AppDelegate ()
 
@@ -16,7 +18,38 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    [GAI sharedInstance].trackUncaughtExceptions = YES;
+    // Optional: set Google Analytics dispatch interval to e.g. 20 seconds.
+    [GAI sharedInstance].dispatchInterval = 20;
+    
+    // Optional: set Logger to VERBOSE for debug information.
+    //[[[GAI sharedInstance] logger] setLogLevel:kGAILogLevelVerbose];
+    
+    [[GAI sharedInstance] trackerWithTrackingId:@"UA-31363866-9"];
+    id<GAITracker> tracker = [[GAI sharedInstance] defaultTracker];
+    [tracker send:[[GAIDictionaryBuilder createEventWithCategory:@"start" action:@"start" label:@"tanach"  value:[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]] build]];
+    
+    if ([UIApplication instancesRespondToSelector:@selector(registerUserNotificationSettings:)]){
+        [application registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:UIUserNotificationTypeAlert|UIUserNotificationTypeBadge|UIUserNotificationTypeSound categories:nil]];
+    }
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"registerd"]) {
+        [tracker send:[[GAIDictionaryBuilder createEventWithCategory:@"start"  action:@"register"  label:@"tanach"  value:[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"]] build]];
+        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+        [defaults setInteger:0 forKey: @"book"];
+        [defaults setInteger:0 forKey: @"section"];
+        [defaults setInteger:0 forKey: @"chap"];
+        [defaults setInteger:1 forKey: @"linesmode"];
+        [defaults setInteger:1 forKey: @"lang"];
+        [defaults setObject:@"NO" forKey:@"LockScreen"];
+        [defaults setObject:@"YES" forKey:@"registerd"];
+        [defaults setInteger:100 forKey: @"fontsize"];
+        [defaults setObject:@"NO" forKey:@"nightmode"];
+        [defaults setObject:@"NO" forKey:@"hideall"];
+        [defaults setBool:@"YES" forKey:@"mefref"];
+        [defaults setInteger:0 forKey: @"currentScroll"];
+        [defaults synchronize];
+        
+    }
     return YES;
 }
 
