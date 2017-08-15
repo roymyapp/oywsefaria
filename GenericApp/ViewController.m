@@ -21,6 +21,7 @@
 
 @end
 
+
 @implementation ViewController
 
 #define TAG_SEGMENTED_CONTORL              9995551
@@ -59,7 +60,6 @@
 #define TAG_CELL_LANGUAGE                  9999009
 #define TAG_CELL_OPEN_IN                   9999010
 #define TAG_CELL_ABOUT                     9999011
-#define TAG_CELL_ABOUT_SEFARIA             9999012
 #define TAG_CELL_BACK                      9999013
 
 #define TAG_LAST_CELL                      9999999
@@ -69,6 +69,7 @@
 
 
 
+#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
 
 #define MAX_RANGE    20
 #define MAX_HISTORY  20
@@ -194,13 +195,6 @@
                 cell.tag = TAG_CELL_ABOUT;
                 return cell;
             }
-            if (10==ind) {
-                [cell.textLabel setText:NSLocalizedString(@"about sefaria short", @"")];
-                button.text = @"\uf129";
-                cell.tag = TAG_CELL_ABOUT_SEFARIA;
-                return cell;
-            }
-            
 
         case TAG_TOC:
             switch (indexPath.section) {
@@ -232,6 +226,13 @@
                     }
                     break;
                 case 1:
+                    if (_jsonSchema) {
+                        [cell.textLabel setText: _jsonSchema[indexPath.row][@"enTitle"]];
+                        if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
+                            [cell.textLabel setText: _jsonSchema[indexPath.row][@"heTitle"]];
+                        }
+                        break;
+                    }
                     if (_jsonLen) {
                         int l = (int)indexPath.row+1;
                         if (_is_bavli.boolValue) {
@@ -306,9 +307,9 @@
                         break;
                     }
                 case 1:
-                    [cell.textLabel setText:[[_config[@"commentary_description"] objectAtIndex: ((NSNumber*)([_mefsarray objectAtIndex:indexPath.row])).intValue] objectAtIndex:0]];
+                    [cell.textLabel setText:_config[@"books_index"][_mefsarray[indexPath.row]][0]];
                     if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
-                        [cell.textLabel setText:[[_config[@"commentary_description"] objectAtIndex: ((NSNumber*)([_mefsarray objectAtIndex:indexPath.row])).intValue] objectAtIndex:1]];
+                        [cell.textLabel setText:_config[@"hebrew_long_index"][_mefsarray[indexPath.row]][0]];
                     }
                     button.text = @"\uf070";
                     if ([[NSUserDefaults standardUserDefaults] boolForKey:[[NSString alloc] initWithFormat: @"par%d",((NSNumber*)([_mefsarray objectAtIndex:indexPath.row])).intValue]]) {
@@ -404,12 +405,6 @@
             return;
         }
         
-        if (TAG_CELL_ABOUT_SEFARIA == cell.tag) {
-            [ self showPopup:NSLocalizedString(@"about sefaria", @"") animated:YES];
-            [tracker send:[[GAIDictionaryBuilder createEventWithCategory:@"menu" action:@"about sefaria" label:galabel                                                                              value:nil]build]];
-            [self.drawerController closeDrawerAnimated:YES completion:nil];
-            return;
-        }
         NSLog(@"unknown cell tag");
         return;
         
@@ -543,7 +538,7 @@
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
     // Return the number of rows in the section.
-    int i = 11;
+    int i = 10;
     switch (tableView.tag) {
         case TAG_TOC:
             switch (section) {
@@ -652,7 +647,7 @@
     
     if (pickerView.tag==TAG_PICKER_CHAP) {
         NSLog(@"picker 0");
-        int l = row;
+        long l = row;
         [pickerView setHidden:YES];
         if (chap==row) {
             return;
@@ -661,7 +656,7 @@
             l = l + 2;
         }
         //[_index removeLastObject];
-        [_index addObject:[[NSNumber alloc] initWithInt:l]];
+        [_index addObject:[[NSNumber alloc] initWithLong:l]];
         [self loadTOCMenu:YES];
     }
     if (pickerView.tag==TAG_PICKER_SECTION) {
@@ -752,7 +747,7 @@
 
 -(void)deleteBookmark:(UIButton*)sender
 {
-    NSLog(@"%d", sender.tag);
+    NSLog(@"%ld", (long)sender.tag);
     [_bookmarks removeObjectAtIndex:sender.tag];
     [[NSUserDefaults standardUserDefaults] setObject:_bookmarks forKey:@"bookmarks"];
     [[NSUserDefaults standardUserDefaults] synchronize];
@@ -778,15 +773,78 @@
 }
 
 - (void)loadTOCXML {
-    NSString *nfilePath = [[NSString alloc] initWithFormat:@"toc"];
+    NSString *nfilePath = [[NSString alloc] initWithFormat:@"toc.xml"];
     GDataXMLDocument *doc = [ZipData loadData:nfilePath printError:YES];
     if (doc == nil) {
         return;
     }
     _doctoc = doc;
-    nfilePath = [[NSString alloc] initWithFormat:@"main"];
-    _config =  [ZipData loadJsonData: nfilePath printError:YES cache:_cache];
+    nfilePath = [[NSString alloc] initWithFormat:@"main.json"];
+    _config =  [ZipData loadJsonData: nfilePath printError:YES cache:_cache empty:_emptycache];
 }
+
+-(NSString*) getAllItems: (NSArray *)array index:(int)index schema:(NSArray *)schema  {
+    NSMutableString* res = [[NSMutableString alloc]initWithString:@""];
+    if([array isKindOfClass:[NSDictionary class]]) {
+        if (schema) {
+            NSDictionary* new_schema = ((NSDictionary*)schema[index]);
+            NSArray* obj = ((NSDictionary*)array)[new_schema[@"enTitle"]];
+            if([new_schema objectForKey:@"nodes"] != nil) {
+                schema = new_schema[@"nodes"];
+            }
+            else
+            {
+                schema = nil;
+            }
+            [res appendString:@"<span class='ps'>"];
+            if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
+                [res appendString:new_schema[@"heTitle"]];
+            }
+            else {
+                [res appendString:new_schema[@"enTitle"]];
+            }
+            [res appendString:@"</span>"];
+            for(int i=0; i<[obj count]; i++) {
+                [res appendString:[self getAllItems:obj index:i schema:schema]];
+            }
+            
+            
+        }
+        else {
+            NSLog(@"get all dict schema failed %@", array);
+            return @"";
+            
+        }
+    }
+    else {
+        if (![array isKindOfClass:[NSString class]] && ![array isKindOfClass:[NSArray class]]) {
+            NSLog(@"get all failed %@", array);
+            return @"";
+        }
+        NSArray* obj = array[index];
+        if ([obj isKindOfClass:[NSString class]]) {
+            [res appendString:(NSString*)obj];
+        }
+        else {
+            for(NSArray* child in obj) {
+                if([child isKindOfClass:[NSString class]]) {
+                    [res appendString:(NSString*)child];
+                    [res appendString:@"<br>"];
+                }
+                else if([child isKindOfClass:[NSArray class]]) {
+                    for(int i=0; i<[child count]; i++) {
+                        [res appendString:[self getAllItems:child index:i schema:nil]];
+                    }
+                }
+                else {
+                    NSLog(@"get all failed %@", array);
+                }
+            }
+        }
+    }
+    return res;
+}
+
 
 -(NSArray*) getJsonFinalItem: (NSArray *)array json:(NSArray *)json {
     NSArray* res = json;
@@ -799,74 +857,82 @@
     return res;
 }
 
-- (void)loadJSONTOCMenu:(NSArray *)array jsonId:(NSString*) jsonId updateHistory:(BOOL)updateHistory{
-    NSString* nfilePath = [[NSString alloc] initWithFormat:@"j%@", jsonId];
-    _jsonFile =  [ZipData loadJsonData: nfilePath printError:YES cache:_cache];
-    nfilePath = [[NSString alloc] initWithFormat:@"r%@", jsonId];
-    //NSDictionary* jsonRefFile = [ZipData loadJsonData: nfilePath printError:YES cache:_cache];
-    _jsonHE = _jsonFile[@"he"];
-    _jsonEN = _jsonFile[@"en"];
-    _jsonREF = [ZipData loadJsonData: nfilePath printError:NO cache:_cache];
-    _jsonLen = [[NSNumber alloc] initWithInteger:MAX([_jsonHE count], [_jsonEN count])];
+- (void)loadJSON:(NSString*) jsonId array:(NSArray *)array lang:(NSString*) lang updateHistory:(BOOL)updateHistory{
+    _jsonHE = nil;
+    _jsonEN = nil;
+    NSMutableString* nfilePath = [[NSMutableString alloc] initWithFormat:@"%@", jsonId];
+    for (NSNumber *n in array) {
+        [nfilePath appendFormat:@".%@", n.stringValue];
+    }
+    NSString* hefile = [[NSString alloc] initWithFormat:@"%@.he.json", nfilePath];
+    NSString* enfile = [[NSString alloc] initWithFormat:@"%@.en.json", nfilePath];
+    NSString* reffile = [[NSString alloc] initWithFormat:@"%@.ref.json", jsonId];
+    if([lang isEqualToString:@"he"] || [lang isEqualToString:@"both"]) {
+        _jsonHE = (NSArray *)[ZipData loadJsonData: hefile printError:YES cache:_cache empty:_emptycache];
+    }
+    if([lang isEqualToString:@"en"] || [lang isEqualToString:@"both"]) {
+        _jsonEN = (NSArray *)[ZipData loadJsonData: enfile printError:YES cache:_cache empty:_emptycache];
+    }
+    NSDictionary* jsonRefFile = [ZipData loadJsonData: reffile printError:NO cache:_cache empty:_emptycache];
+    if(jsonRefFile) {
+        for(NSNumber* n in array) {
+            if([jsonRefFile objectForKey:n.stringValue]) {
+                jsonRefFile = jsonRefFile[n.stringValue];
+            }
+            else {
+                jsonRefFile = nil;
+                break;
+            }
+        }
+    }
+    _jsonREF = jsonRefFile;
     if ([[[_sectionsName objectAtIndex:0] objectAtIndex:0] isEqualToString:@"Daf"] && _is_bavli_up) {
         _is_bavli = [NSNumber numberWithBool: TRUE];
     }
+    NSMutableArray* first = [[NSMutableArray alloc] initWithArray:_index copyItems:YES];
+    [first addObject:[[NSNumber alloc] initWithInt:0]];
+    if(updateHistory){
+        [_history insertObject:first atIndex:0];
+        if (_history.count > MAX_HISTORY) {
+            [_history removeLastObject];
+        }
+        [[NSUserDefaults standardUserDefaults] setObject:_history forKey:@"history"];
+        //[[NSUserDefaults standardUserDefaults] setInteger:0 forKey: @"currentScroll"];
+    }
+    [[NSUserDefaults standardUserDefaults] synchronize];
 
-    int x = 1;
-    for(NSNumber *i in array) {
-        x+=1;
-        if (i.integerValue < [_jsonHE count]) {
-            _jsonHE = [_jsonHE objectAtIndex:i.integerValue];
-        }
-        else {
-            _jsonHE = @[];
-        }
+    [self.drawerController closeDrawerAnimated:YES completion:nil];
+    [self loadPage];
+    //[_index removeLastObject];
+    return;
 
-        if (i.integerValue < [_jsonEN count]) {
-            _jsonEN = [_jsonEN objectAtIndex:i.integerValue];
-        }
-        else {
-            _jsonEN = @[];
-        }
-        
-        if (_jsonREF) {
-            NSNumber* refnum = [NSNumber numberWithInt:i.intValue + 1];
-            _jsonREF =[_jsonREF objectForKey:refnum.stringValue];
-        }
+}
 
-        //_jsonLen = [[NSNumber alloc] initWithInteger:MAX([_jsonHE count], [_jsonEN count])];
+- (void)loadJSONTOCMenu:(NSArray *)array jsonId:(NSString*) jsonId lang:(NSString*) lang updateHistory:(BOOL)updateHistory{
+    _jsonHE = nil;
+    _jsonEN = nil;
+
+    _sectionsName = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][jsonId])).intValue];
+    _is_bavli = [NSNumber numberWithBool: FALSE];
+    if ([[_sectionsName objectAtIndex:1] count] && [[[_sectionsName objectAtIndex:1] objectAtIndex:0] isEqualToString:@"Daf"]) {
+        _is_bavli = [NSNumber numberWithBool: TRUE];
     }
-    if (x > _indexDepth.integerValue || ([[_sectionsName objectAtIndex:0] count] == 1)) {
-        [self.drawerController closeDrawerAnimated:YES completion:nil];
-        NSMutableArray* first = [[NSMutableArray alloc] initWithArray:_index copyItems:YES];
-        [first addObject:[[NSNumber alloc] initWithInt:0]];
-        if(updateHistory){
-            [_history insertObject:first atIndex:0];
-            if (_history.count > MAX_HISTORY) {
-                [_history removeLastObject];
-            }
-            [[NSUserDefaults standardUserDefaults] setObject:_history forKey:@"history"];
-            //[[NSUserDefaults standardUserDefaults] setInteger:0 forKey: @"currentScroll"];
+
+    [self.drawerController closeDrawerAnimated:YES completion:nil];
+    NSMutableArray* first = [[NSMutableArray alloc] initWithArray:_index copyItems:YES];
+    [first addObject:[[NSNumber alloc] initWithInt:0]];
+    if(updateHistory){
+        [_history insertObject:first atIndex:0];
+        if (_history.count > MAX_HISTORY) {
+            [_history removeLastObject];
         }
-        [[NSUserDefaults standardUserDefaults] synchronize];
-        
-        if (x>1) {
-            _lastindex = [_index lastObject];
-        }
-        else{
-            _lastindex = nil;
-        }
-        [_index removeLastObject];
-        [self loadPage];
-        return;
+        [[NSUserDefaults standardUserDefaults] setObject:_history forKey:@"history"];
+        //[[NSUserDefaults standardUserDefaults] setInteger:0 forKey: @"currentScroll"];
     }
-    if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
-        _tocname = [[_sectionsName objectAtIndex:1] objectAtIndex:[array count]];
-    }
-    else {
-        _tocname = [[_sectionsName objectAtIndex:0] objectAtIndex:[array count]];
-    }
-    [_lefttableView reloadData];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+    _lastindex = [_index lastObject];
+    [self loadJSON:jsonId array:array lang:lang updateHistory:updateHistory];
+    [_index removeLastObject];
 
 }
 
@@ -926,6 +992,8 @@
     _jsonLen = nil;
     _toc = [_doctoc.rootElement elementsForName:@"node"];
     _tocname = @"On Your Way";
+    _indexDepth = [[NSNumber alloc] initWithInt:1];
+
     if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
         _tocname = @"ובלכתך בדרך";
     }
@@ -949,10 +1017,28 @@
         if ([[_toc objectAtIndex:i.integerValue] attributeForName:@"i"]) {
             NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
             [f setNumberStyle:NSNumberFormatterDecimalStyle];
-            _sectionsName = [_config[@"section_type"] objectAtIndex:[f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"d"].stringValue].integerValue];
             _subindexarray = [_index subarrayWithRange:NSMakeRange(x, _index.count-x)];
             _nid = [f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"i"].stringValue];
-            [self loadJSONTOCMenu: _subindexarray jsonId:[[_toc objectAtIndex:i.integerValue] attributeForName:@"i"].stringValue updateHistory: updateHistory];
+            NSNumber* level = [f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"level"].stringValue];
+            NSNumber* len = [f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"chaps"].stringValue];
+            _jsonLen = len;
+            if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
+                _tocname = [[_sectionsName objectAtIndex:1] objectAtIndex:0];
+            }
+            else {
+                _tocname = [[_sectionsName objectAtIndex:0] objectAtIndex:0];
+            }
+            if(level.intValue == 2 && _subindexarray.count == 1)
+            {
+                _jsonLen = _config[_nid.stringValue][[_subindexarray[0] stringValue]];
+            }
+            _sectionsName = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][_nid.stringValue])).intValue];
+            
+            if ([_subindexarray count] >= level.intValue){
+                [self loadJSONTOCMenu: _subindexarray jsonId:[[_toc objectAtIndex:i.integerValue] attributeForName:@"i"].stringValue lang:[[_toc objectAtIndex:i.integerValue] attributeForName:@"lang"].stringValue updateHistory: updateHistory];
+            }
+            
+            [_lefttableView reloadData];
             return;
         }
         
@@ -1026,6 +1112,17 @@
         x+= [[gim objectForKey:[NSString stringWithFormat: @"%C", ch]] integerValue];
     }
     return x;
+}
+
+-(NSInteger) getPage:(NSString*) string
+{
+    //str(int(part_num_ref[:-1]) * 2 - 2 + {"a": 1, "b": 2}[part_num_ref[-1]])
+    NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
+    [f setNumberStyle:NSNumberFormatterDecimalStyle];
+    NSInteger res = [f numberFromString:[string substringWithRange:NSMakeRange(0, string.length-1)]].intValue * 2 - 1;
+    if([string hasSuffix:@"b"])
+        res += 1;
+    return res;
 }
 
 - (NSString *) getLocalizedindex :(int) value {
@@ -1316,11 +1413,11 @@
     }
     if (![array isKindOfClass:[NSString class]]) {
         for(id i in (NSArray*)array){
-            [res appendFormat:@"%@<x/>", [self arrayToString:i]];
+            [res appendFormat:@"%@", [self arrayToString:i]];
         }
     }
     else {
-        [res appendFormat:@"%@<x/>", (NSString*) array];
+        [res appendFormat:@"%@", (NSString*) array];
     }
     return res;
 }
@@ -1328,43 +1425,65 @@
 -(NSMutableDictionary*) getRefDict:(NSArray*) arr {
     @try {
         NSMutableDictionary* res = [[NSMutableDictionary alloc] init];
-        NSString* nfilePath = [[NSString alloc] initWithFormat:@"j%@", [arr objectAtIndex:0]];
-        NSNumber* book_id = [arr objectAtIndex:0];
-        NSDictionary* jsonRefFile = [ZipData loadJsonData: nfilePath printError:NO cache:_cache];
         NSArray* he = @[];
         NSArray* en = @[];
-        NSArray* subindex = [arr objectAtIndex:1];
-        NSMutableString* enname = [[NSMutableString alloc] initWithString: [_config[@"books_index"] objectForKey: book_id.stringValue]];
-        NSMutableString* hename = [[NSMutableString alloc] initWithString: [_config[@"hebrew_index"] objectForKey: book_id.stringValue]];
-        int sectionType = ((NSNumber*)[_config[@"books_section_type"] objectForKey: book_id.stringValue]).intValue;
-        NSArray* sectionsNames = [_config[@"section_type"] objectAtIndex: sectionType];
+        NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
+        [f setNumberStyle:NSNumberFormatterDecimalStyle];
+        NSString* book_id = [arr objectAtIndex:0];
+        NSMutableString* enname = [[NSMutableString alloc] initWithString: _config[@"books_index"][book_id][0]];
+        NSMutableString* hename = [[NSMutableString alloc] initWithString: _config[@"hebrew_long_index"][book_id]];
+        int level = [_config[@"level"][book_id] intValue];
+        NSArray* array = [[(NSString*)arr[1] componentsSeparatedByString:@"-"][0] componentsSeparatedByString:@":"];
+        if ([array count] < level) {
+            NSLog(@"ref array to small name:%@ level: %d arr len:%lu", hename, level,
+                  (unsigned long)[arr[1] count]);
+            return nil;
+        }
+        
+        NSMutableString* nfilePath = [[NSMutableString alloc] initWithFormat:@"%@", book_id];
+        for (NSString *n in [array subarrayWithRange: NSMakeRange( 0, level )]) {
+            long idx = 0;
+            if([n hasSuffix:@"b"] || [n hasSuffix:@"a"]) {
+                idx = [self getPage:n];
+            }
+            else {
+                idx = [f numberFromString:n].intValue;
+            }
+            [nfilePath appendFormat:@".%ld", idx-1];
+        }
+        NSString* hefile = [[NSString alloc] initWithFormat:@"%@.he.json", nfilePath];
+        NSString* enfile = [[NSString alloc] initWithFormat:@"%@.en.json", nfilePath];
+        he =  (NSArray*)[ZipData loadJsonData: hefile printError:NO cache:_cache empty:_emptycache];
+        en =  (NSArray*)[ZipData loadJsonData: enfile printError:NO cache:_cache empty:_emptycache];
+        if(!he)
+            he = @[];
+        if(!en)
+            en = @[];
+
+        NSArray* subindex = array;
+        NSArray* sectionsNames = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][book_id])).intValue];
         for (int i=0; i < MIN([[sectionsNames objectAtIndex:0] count], [subindex count]); i++) {
             [hename appendFormat:@" %@ %@", [[sectionsNames objectAtIndex:1] objectAtIndex:i], [self getLocalizedindex:((NSNumber*)[subindex objectAtIndex:i]).intValue]];
             [enname appendFormat:@" %@ %d", [[sectionsNames objectAtIndex:0] objectAtIndex:i], ((NSNumber*)[subindex objectAtIndex:i]).intValue];
             
         }
-        if (!jsonRefFile) {
-            return nil;
-        }
-        NSMutableArray* normArr = [[NSMutableArray alloc]init];
-        for (NSNumber*n in [arr objectAtIndex:1]) {
-            [normArr addObject:[[NSNumber alloc] initWithInt:n.intValue-1]];
-        }
-        if ([jsonRefFile[@"en"] count]){
-            en = [self getJsonFinalItem:normArr json:jsonRefFile[@"en"]];
-        }
-        if ([jsonRefFile[@"he"] count]){
-            he = [self getJsonFinalItem:normArr json:jsonRefFile[@"he"]];
+        for (NSString *n in [array subarrayWithRange: NSMakeRange( level, [array count]-1 )]) {
+            int idx = [f numberFromString:n].intValue - 1;
+            if (he && [he count] > idx){
+                he = he[idx];
+            }
+            if (en && [en count] > idx){
+                en = en[idx];
+            }
         }
         [res setValue:he forKey:@"he"];
         [res setValue:en forKey:@"en"];
         [res setValue: enname forKey:@"enname"];
         [res setValue: hename forKey:@"hename"];
-        jsonRefFile = nil;
         return res;
     }
     @catch (NSException *exception) {
-        NSLog(@"get ref exception: %@ %@", exception, arr);
+        NSLog(@"got ref exception: %@ %@", exception, arr);
         return nil;
     }
 }
@@ -1375,6 +1494,7 @@
         return;
     }
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+      
     @try {
         _webView.tag = 2;
         long lang = [[NSUserDefaults standardUserDefaults] integerForKey:@"lang"];
@@ -1411,17 +1531,14 @@
         NSString* pscontstyle = @"style='display: block;'";
         //NSString* fontsizestyle = [[NSString alloc] initWithFormat:@"font-size: %ld%%;", (long)[[NSUserDefaults standardUserDefaults] integerForKey:@"fontsize"]];
         if (lang==1) {
+            psstyle = @"style='text-align: center;width: 2%;margin-left: -2%;left: 49%;display: absolute;margin-right: 4px;margin-top: -7px;font-size:75%;'";
             if (hebrewright) {
                 enstyle = @"style='width: 48%;text-align: left;float: left;direction:ltr;'";
                 hestyle = @"style='display: block;width: 48%;text-align: right;float: right;margin-left: 0px;direction: rtl;'";
-                psstyle = @"style='text-align: center;width: 2%;margin-left: -2%;left: 49%;display: absolute;margin-right: 4px;margin-top: -7px;font-size:75%;'";
-                //psstyle = hestyle;
             }
             else {
                 enstyle = @"style='width: 48%;float: right;text-align: left;margin-right: 0px;direction:ltr;'";
                 hestyle = @"style='width: 48%;float: left;text-align: right;margin-left: 0px;display: block;direction: rtl'";
-                psstyle = @"style='text-align: center;width: 2%;margin-left: -2%;left: 49%;display: absolute;margin-right: 4px;margin-top: -7px;font-size:75%;'";
-                //pscontstyle = @"style='display: block;clear: both;margin-bottom: 24px;text-align: justify;'";
                 
             }
             mefenstyle = enstyle;
@@ -1467,25 +1584,37 @@
          */
         _mefsarray = [[NSMutableArray alloc] init];
         NSMutableArray *commentaries = [[NSMutableArray alloc] init];
-        NSArray* comment_config = [_config[@"commentary"] objectForKey:_nid.stringValue];
+        NSDictionary* comment_config = [_config[@"commentary"] objectForKey:_nid.stringValue];
         if(comment_config && linesmode){
-            for(NSArray* a in comment_config) {
-                [_mefsarray addObject:[a objectAtIndex:1]];
-                NSString *par = [[NSString alloc] initWithFormat: @"par%d",((NSNumber*)[a objectAtIndex:1]).intValue];
+            for(NSNumber* a in comment_config) {
+                /*if (((NSNumber*)[a objectAtIndex:1]).intValue != 0) {
+                    continue;
+                }*/
+                NSLog(@"%@", a);
+                [_mefsarray addObject:a];
+                NSString *par = [[NSString alloc] initWithFormat: @"par%d",a.intValue];
                 BOOL is_hidden = [[NSUserDefaults standardUserDefaults] boolForKey:par];
                 NSArray* he = @[];
                 NSArray* en = @[];
                 if ((!is_hidden || hideall) && linesmode) {
-                    NSString* nfilePath = [[NSString alloc] initWithFormat:@"j%@", [a objectAtIndex:0]];
-                    NSDictionary* comjsonFile =  [ZipData loadJsonData: nfilePath printError:YES cache:_cache];
-                    he = [self getJsonFinalItem:_subindexarray json:comjsonFile[@"he"]];
-                    en = [self getJsonFinalItem:_subindexarray json:comjsonFile[@"en"]];
+                    NSMutableString* nfilePath = [[NSMutableString alloc] initWithFormat:@"%@", a];
+                    for (NSNumber *n in _subindexarray) {
+                        [nfilePath appendFormat:@".%@", n.stringValue];
+                    }
+                    NSString* hefile = [[NSString alloc] initWithFormat:@"%@.he.json", nfilePath];
+                    NSString* enfile = [[NSString alloc] initWithFormat:@"%@.en.json", nfilePath];
+                    he =  (NSArray*)[ZipData loadJsonData: hefile printError:NO cache:_cache empty:_emptycache];
+                    en =  (NSArray*)[ZipData loadJsonData: enfile printError:NO cache:_cache empty:_emptycache];
+                    if(!he)
+                        he = @[];
+                    if(!en)
+                        en = @[];
 
                 }
-                [commentaries addObject: @[he,en]];
+                [commentaries addObject: @[a, he, en]];
             }
         }
-        int pslen = MAX(_jsonHE.count, _jsonEN.count);
+        unsigned long pslen = MAX(_jsonHE.count, _jsonEN.count);
         NSMutableArray* arr = [[NSMutableArray alloc] initWithArray:[_history objectAtIndex:0] copyItems:YES];
         [arr removeLastObject];
         
@@ -1527,7 +1656,6 @@
             for(NSArray* r in ref) {
                 NSMutableDictionary* refdict = [self getRefDict:r];
                 if (refdict && ![refset containsObject:refdict[@"enname"]]) {
-                    p=p+1;
                     NSString* enname = refdict[@"enname"];
                     NSString* hename = refdict[@"hename"];
                     [refset addObject:enname];
@@ -1536,6 +1664,7 @@
                     [refstr appendFormat:@"<mef style='display:none;' class='mefrc00'>"];
                     //NSLog(@"%d", p);
                     if (lang && hecont && hecont != (NSString*)[NSNull null] && !([hecont isEqualToString:@""]) && !([hecont isEqualToString:@"<x/>"])) {
+                        p=p+1;
                         [refstr appendFormat:@"<span class='he d expander' %@>", mefhestyle];
                         [refstr appendFormat:@"<span style='color:grey;'>%@:</span> ", hename];
                         [refstr appendFormat:@"%@", hecont];
@@ -1543,6 +1672,7 @@
                         
                     }
                     if (lang<2 && encont && encont != (NSString*)[NSNull null] && !([encont isEqualToString:@""]) && !([encont isEqualToString:@"<x/>"])) {
+                        p=p+1;
                         [refstr appendFormat:@"<span class='en d expander' %@>", mefenstyle];
                         [refstr appendFormat:@"<span style='color:grey;'>%@:</span>", enname];
                         [refstr appendFormat:@"%@", encont];
@@ -1563,9 +1693,6 @@
             [refstr appendFormat:@"</span>"];
             
         }
-        if (p) {
-            [htmlString appendString:refstr];
-        }
 
         for (int i=0; i < pslen; i++) {
             NSMutableString* pasukstr = [[NSMutableString alloc]init];
@@ -1574,54 +1701,13 @@
             id pasukhe = @"";
             id pasuken = @"";
             if (i < [_jsonHE count]) {
-                pasukhe = [_jsonHE objectAtIndex:i];
-                if (![pasukhe isKindOfClass:[NSString class]]) {
-                    pasukhe = @"";
-                }
+                pasukhe = [self getAllItems:_jsonHE index:i schema:_jsonSchema ];
             }
             if (i < [_jsonEN count]) {
-                pasuken = [_jsonEN objectAtIndex:i];
-                if (![pasuken isKindOfClass:[NSString class]]) {
-                    pasuken = @"";
-                }
+                pasuken = [self getAllItems:_jsonEN index:i schema:_jsonSchema ];
             }
             unsigned long current_pas = i;
             NSString* hiddenmefbut = [[NSString alloc] initWithFormat:@"<mefb style='color:grey;font-size:70%%;' onclick='$(\".mefc%lu\").toggle();$(this).find(\"i\").toggleClass(\"fa-plus-square fa-minus-square\")'> <i class='fa fa-plus-square' %@></i></mefb>", current_pas,hiddenmefbutstyle];
-            [pasukstr appendFormat:@"<a class='psanchor' %@ name='aaa%lu'/>", psanchorstyle ,current_pas];
-            [_halachs addObject:[self getLocalizedindex:i+1]];
-            [pasukstr appendFormat:@"<xyz><span class='pscont' %@>", pscontstyle];
-            if (pslen > 1 && shoulwriteps) {
-                if (0!=lang) {
-                    [pasukstr appendFormat:@"<div class='ps' %@>%@</div>", psstyle, [self toGimatria:i+1]];
-                    
-                }
-                else {
-                    [pasukstr appendFormat:@"<div class='ps' %@>%d</div>", psstyle, i+1];
-                }
-            }
-            //NSLog(@"%@", [nid integerValue]);
-            
-            /*NSString* cont = [nameNode.stringValue  stringByReplacingOccurrencesOfString:@"מתני'"
-             withString:@"<b><span style='color:blue;'>מתני</span></b>"];*/
-            NSMutableString* cont = [self arrayToString:pasukhe];
-            if (lang) {
-                [pasukstr appendFormat:@"<span class='he d' %@>%@</span>", hestyle, cont];
-            }
-            if (![pasuken isEqualToString:@""]) {
-                foundeng = YES;
-                [pasukstr appendFormat:@"<span class='en d' %@>%@</span>", enstyle, [self arrayToString:pasuken]];
-            }
-            else {
-                [pasukstr appendFormat:@"<span class='en d' %@>-</span>", enstyle];
-            }
-            if (lang==1) {
-                [pasukstr appendFormat:@"<div class='clear' %@></div>", clearstyle];
-                
-            }
-            else{
-                [pasukstr appendFormat:@"<div class='clear' style='display:inline;'></div>"];
-                
-            }
 
             //NSArray *pirushim = [pasuk elementsForName:@"t"];
             NSMutableString* mefstr = [[NSMutableString alloc]init];
@@ -1631,24 +1717,17 @@
             //
             
             
-            for(int c_index=0; c_index < [commentaries count]; c_index++) {
-                if (c_index==0) {
-                    NSLog(@"");
-                }
-                NSNumber* mefnum = [[comment_config objectAtIndex:c_index] objectAtIndex:1];
-                NSString* enname = [[_config[@"commentary_description"] objectAtIndex:mefnum.intValue] objectAtIndex:0];
-                NSString* hename = [[_config[@"commentary_description"] objectAtIndex:mefnum.intValue] objectAtIndex:1];
+            for(NSArray* c_index in commentaries) {
+                NSString* mefnum = c_index[0];
+                NSString* enname = _config[@"books_index"][mefnum];
+                NSString* hename = _config[@"hebrew_long_index"][mefnum];
                 NSString* hecont = nil;
                 NSString* encont = nil;
-                if([[commentaries objectAtIndex:c_index] objectAtIndex:0] != [NSNull null]){
-                    if([[[commentaries objectAtIndex:c_index] objectAtIndex:0] count] > i) {
-                        hecont = [self arrayToString:[[[commentaries objectAtIndex:c_index] objectAtIndex:0] objectAtIndex:i]];
-                    }
+                if([c_index[1] count] > i){
+                    hecont = [self arrayToString:c_index[1][i]];
                 }
-                if([[commentaries objectAtIndex:c_index] objectAtIndex:1] != [NSNull null]){
-                    if([[[commentaries objectAtIndex:c_index] objectAtIndex:1] count] > i) {
-                        encont = [self arrayToString:[[[commentaries objectAtIndex:c_index] objectAtIndex:1] objectAtIndex:i]];
-                    }
+                if([c_index[2] count] > i){
+                    encont = [self arrayToString:c_index[2][i]];
                 }
                 
                 [mefstr appendFormat:@"<mef style='"];
@@ -1684,8 +1763,9 @@
                 }
             }
             NSArray* ref = nil;
-            if ([_jsonREF isKindOfClass:[NSDictionary class]]) {
-                ref = _jsonREF[[[NSString alloc] initWithFormat:@"%d", i+1]];
+            NSString* psid = [[NSString alloc] initWithFormat:@"%d", i+1];
+            if ([_jsonREF isKindOfClass:[NSDictionary class]] && [_jsonREF objectForKey:psid]) {
+                ref = _jsonREF[psid];
 
             }
             if ([ref isKindOfClass:[NSDictionary class]]) {
@@ -1713,7 +1793,6 @@
                 for(NSArray* r in ref) {
                     NSMutableDictionary* refdict = [self getRefDict:r];
                     if (refdict && ![refset containsObject:refdict[@"enname"]]) {
-                        p=p+1;
                         NSString* enname = refdict[@"enname"];
                         NSString* hename = refdict[@"hename"];
                         [refset addObject:enname];
@@ -1721,7 +1800,8 @@
                         NSString* encont = [self arrayToString:refdict[@"en"]];
                         [refstr appendFormat:@"<mef style='display:none;' class='mefrc%lu'>", current_pas];
                         //NSLog(@"%d", p);
-                        if (lang && hecont && hecont != (NSString*)[NSNull null] && !([hecont isEqualToString:@""]) && !([hecont isEqualToString:@"<x/>"])) {
+                        if (lang && hecont && ![hecont isEqual:[NSNull null]] && !([hecont isEqualToString:@""]) && ([hecont length]>0) && !([hecont isEqualToString:@"<x/>"])) {
+                            p=p+1;
                             [refstr appendFormat:@"<span class='he d expander' %@>", mefhestyle];
                             [refstr appendFormat:@"<span style='color:grey;'>%@:</span> ", hename];
                             [refstr appendFormat:@"%@", hecont];
@@ -1729,6 +1809,7 @@
                             
                         }
                         if (lang<2 && encont && encont != (NSString*)[NSNull null] && !([encont isEqualToString:@""]) && !([encont isEqualToString:@"<x/>"])) {
+                            p=p+1;
                             [refstr appendFormat:@"<span class='en d expander' %@>", mefenstyle];
                             [refstr appendFormat:@"<span style='color:grey;'>%@:</span>", enname];
                             [refstr appendFormat:@"%@", encont];
@@ -1751,23 +1832,52 @@
 
             }
             
-            if (hideall && !multi && lang==2&& meffound) {
-                [pasukstr appendString:hiddenmefbut];
-            }
-            else if (hideall && !multi && lang==0&&meffoundeng) {
-                [pasukstr appendString:hiddenmefbut];
-            }
             //
+            [pasukstr appendFormat:@"<a class='psanchor' %@ name='aaa%lu'/>", psanchorstyle ,current_pas];
+            [_halachs addObject:[self getLocalizedindex:i+1]];
+            [pasukstr appendFormat:@"<xyz><span class='pscont' %@>", pscontstyle];
+            if (pslen > 1 && shoulwriteps) {
+                if (hideall && (meffound || meffoundeng)) {
+                    [pasukstr appendFormat:@"<span style='text-decoration: underline; text-decoration-color: blue;text-decoration-style:dotted;'>"];
+                }
+                if (0!=lang) {
+                    [pasukstr appendFormat:@"<div class='ps' %@ onclick='$(\".mefc%lu\").toggle();'>%@</div>",
+                     psstyle, current_pas , [self toGimatria:i+1]];
+                    
+                }
+                else {
+                    [pasukstr appendFormat:@"<div class='ps' %@ onclick='$(\".mefc%lu\").toggle();'>%d</div>",
+                     psstyle, current_pas, i+1];
+                }
+                if (hideall && (meffound || meffoundeng)) {
+                    [pasukstr appendFormat:@"</span>"];
+                }
+            }
+            else if (hideall && (meffound || meffoundeng)) {
+                [pasukstr appendFormat:@"<span style='text-decoration: underline; text-decoration-color: blue;text-decoration-style:dotted;'>-</span>"];
+            }
+            //NSLog(@"%@", [nid integerValue]);
             
+            /*NSString* cont = [nameNode.stringValue  stringByReplacingOccurrencesOfString:@"מתני'"
+             withString:@"<b><span style='color:blue;'>מתני</span></b>"];*/
+            NSMutableString* cont = [self arrayToString:pasukhe];
+            if (lang) {
+                [pasukstr appendFormat:@"<span class='he d' %@>%@</span>", hestyle, cont];
+            }
+            if (![pasuken isEqualToString:@""]) {
+                foundeng = YES;
+                [pasukstr appendFormat:@"<span class='en d' %@>%@</span>", enstyle, [self arrayToString:pasuken]];
+            }
+            else {
+                [pasukstr appendFormat:@"<span class='en d' %@>-</span>", enstyle];
+            }
+
             [pasukstr appendFormat:@"</span>"];
             if (lang==1) {
                 [pasukstr appendFormat:@"<div class='clear' %@></div>", clearstyle];
             }
             
             
-            if (hideall && !multi && lang==1&&(meffound||meffoundeng)) {
-                [pasukstr appendFormat:@"<center>%@</center>",hiddenmefbut];
-            }
             [pasukstr appendString:mefstr];
             if (p) {
                 [pasukstr appendString:refstr];
@@ -1787,6 +1897,10 @@
             }
             [htmlString appendFormat:@"%@", pasukstr];
         }
+        if (p) {
+            [htmlString appendString:refstr];
+        }
+
         [htmlString appendString:@"<br/><br/>"];
         [htmlString replaceOccurrencesOfString:@"</br>" withString:@"<br>" options:NSLiteralSearch range:NSMakeRange(0, htmlString.length)];
         NSString *path = [[NSBundle mainBundle] bundlePath];
@@ -1851,6 +1965,12 @@
 
 
 - (void)viewDidLoad {
+    if(SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0")) {
+        [[UIView appearance] setSemanticContentAttribute:UISemanticContentAttributeForceLeftToRight];
+        [[UIView appearanceWhenContainedIn:[UIAlertController class], nil] setSemanticContentAttribute:UISemanticContentAttributeUnspecified];
+        [[UIView appearanceWhenContainedIn:[UIAlertView class], nil] setSemanticContentAttribute:UISemanticContentAttributeUnspecified];
+        [[UINavigationBar appearance] setSemanticContentAttribute:UISemanticContentAttributeForceLeftToRight];
+    }
     [super viewDidLoad];
     /*
     _toolbar = [[UIToolbar alloc] init];
@@ -1868,6 +1988,7 @@
      */
     //    return;
     _cache = [[NSMutableArray alloc] init];
+    _emptycache = [[NSMutableDictionary alloc] init];
     NSArray* arr =[[NSUserDefaults standardUserDefaults] arrayForKey:@"history"];
     _history = [[NSMutableArray alloc] init];
     for(NSArray* a in arr) {
@@ -1888,7 +2009,6 @@
     _webView.scalesPageToFit = YES;
     _webView.delegate = self;
     _webView.scrollView.delegate = self;
-    _webView.tag = 0;
     _index = [[NSMutableArray alloc] initWithArray:@[]];
     _navbar = [[UINavigationBar alloc]initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 50)];
     [center.view addSubview:_navbar];
@@ -1981,8 +2101,9 @@
         NSString *path = [[NSBundle mainBundle] bundlePath];
         NSURL *baseUrl = [NSURL fileURLWithPath:path];
         [_webView loadHTMLString: html baseURL:baseUrl];
-
         [self loadTOCMenu:NO];
+        _webView.tag = 2;
+
     }
 }
 
@@ -2343,7 +2464,7 @@
 
 -(void)updatePSwithnum:(NSInteger) ps
 {
-    if (![self shouldWritePasuk]) {
+    if (![self shouldWritePasuk] || !_halachs) {
         return;
     }
     if (ps >= [_halachs count]) {
@@ -2365,7 +2486,7 @@
 
 
 - (void)saveState {
-    if (_webView.tag == 2) {
+    if (_webView.tag == 2 || ![_history count]) {
         NSLog(@"save state not active");
         return;
     }

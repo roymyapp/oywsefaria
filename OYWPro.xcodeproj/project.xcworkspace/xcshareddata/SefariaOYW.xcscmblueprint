@@ -1,0 +1,37 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "9FD612B413AF020CA0A3D5BCACE00EEC0A1E3EFC",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "9FD612B413AF020CA0A3D5BCACE00EEC0A1E3EFC" : 0,
+    "281ED847AA50F48D4092AFA9E176E50A4622C4B9" : 0,
+    "65E71B0513DBFB09F39CEEF3A8B769CB93E66994" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "A34D4C07-B8E0-47AE-824F-17EAE65300D0",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "9FD612B413AF020CA0A3D5BCACE00EEC0A1E3EFC" : "GenericApp\/",
+    "281ED847AA50F48D4092AFA9E176E50A4622C4B9" : "..\/..\/sefaria\/sefaria",
+    "65E71B0513DBFB09F39CEEF3A8B769CB93E66994" : "GenericApp\/ZipArchive\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "SefariaOYW",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "SefariaOYW.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/Sefaria\/Sefaria-Project.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "281ED847AA50F48D4092AFA9E176E50A4622C4B9"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/ZipArchive\/ZipArchive.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "65E71B0513DBFB09F39CEEF3A8B769CB93E66994"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/roymyapp\/oywsefaria.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "9FD612B413AF020CA0A3D5BCACE00EEC0A1E3EFC"
+    }
+  ]
+}

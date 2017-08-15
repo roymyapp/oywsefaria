@@ -35,9 +35,7 @@
 "error loading" = "Error loading requested page";
 "daily 1" = "daily Rambam one chapter";
 "daily 3" = "daily Rambam three chapter";
-"about text" = "From the creator of 'uvlechtechu baderech' the OYW Sefaria an offline Sefaria version email: <a href='mailto:roy.myapp@gmail.com?Subject='Sefaria iOS' >roy.myapp@gmail.com </a> <br><div style='text-align: right;'>:לעילוי נשמת<p>רבקה הדס בת זאב<p>יעקב בן אברהם<p>אברהם יהושע בן זאב<p>שרה בת שניאור זלמו יחיאל<p>פעסל גיטל אלטע חיה בת נחמן<p>שלמה משה בן ברוך<p>משה בן אשר אנשיל<p>מאלה חיה בת ברוך<p>";
-"about sefaria short" = "about sefaria";
-"about sefaria" = "Sefaria is a non-profit organization that is building a living library of interconnected Torah texts in Hebrew and English. Everything Sefaria does is free, open, text based, and in the public domain. We are proud to support OYW and many other endeavors. Find out more at www.sefaria.org. ";
+"about text" = "From the creator of 'uvlechtechu baderech' email: <a href='mailto:roy.myapp@gmail.com?Subject='ABTorah E' >roy.myapp@gmail.com </a> <br><div style='text-align: right;'>:לעילוי נשמת<p>רבקה הדס בת זאב<p>יעקב בן אברהם<p>אברהם יהושע בן זאב<p>שרה בת שניאור זלמו יחיאל<p>פעסל גיטל אלטע חיה בת נחמן<p>שלמה משה בן ברוך<p>משה בן אשר אנשיל<p>מאלה חיה בת ברוך<p>";
 "settings"="settings";
 "history"="history";
 "bookmarks"="bookmarks";

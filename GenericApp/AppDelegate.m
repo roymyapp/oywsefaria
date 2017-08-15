@@ -9,6 +9,7 @@
 #import "AppDelegate.h"
 #include "GAI.h"
 #include "GAIDictionaryBuilder.h"
+#include "SSZipArchive.h"
 
 @interface AppDelegate ()
 

@@ -12,14 +12,15 @@
 
 #import "GDataXMLNode.h"
 
-#define MAX_CACHE 100
+#define MAX_CACHE 5000
 
 @interface ZipData : NSObject {
 
 }
 
 + (GDataXMLDocument *)loadData:(NSString*)name printError:(BOOL)printError;
-+ (NSDictionary *)loadJsonData:(NSString*)name printError:(BOOL)printError cache:(NSArray*) cache;
++ (NSDictionary *)loadJsonData:(NSString*)name printError:(BOOL)printError cache:(NSArray*) cache empty:(NSMutableDictionary*)empty;
++ (void)sendSlack:(NSString*)msg;
 
 @end
 #endif //__ZIPDATA_H__

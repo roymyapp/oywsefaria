@@ -35,7 +35,7 @@
 "error loading" = "שגיאה בטעינת ספר רצוי";
 "daily 1" = "רמב״ם יומי פרק 1";
 "daily 3" = "רמב״ם יומי 3 פרקים";
-"about text" = "<div style='text-align: right;'>ספאריה לדרך מבית היוצר של ״ובלכתך בדרך״ מביא לכם את ספאריה ללא צורך באינטרנט וממשק משתמש קל ונוח לשימוש, הזכויות על הטקסטים שייכות ל ״ספאריה״ <br><a href='mailto:roy.myapp@gmail.com?Subject='Sefaria iOS H' >roy.myapp@gmail.com </a> <br><div style='text-align: right;'>:לעילוי נשמת<p>רבקה הדס בת זאב<p>יעקב בן אברהם<p>אברהם יהושע בן זאב<p>שרה בת שניאור זלמו יחיאל<p>פעסל גיטל אלטע חיה בת נחמן<p>שלמה משה בן ברוך<p>משה בן אשר אנשיל<p>מאלה חיה בת ברוך<p>";
+"about text" = "<div style='text-align: right;'><a href='mailto:roy.myapp@gmail.com?Subject='ABTorah H' >roy.myapp@gmail.com </a> <br><div style='text-align: right;'>:לעילוי נשמת<p>רבקה הדס בת זאב<p>יעקב בן אברהם<p>אברהם יהושע בן זאב<p>שרה בת שניאור זלמו יחיאל<p>פעסל גיטל אלטע חיה בת נחמן<p>שלמה משה בן ברוך<p>משה בן אשר אנשיל<p>מאלה חיה בת ברוך<p>";
 "print page" = "הדפס";
 "open in"="פתח ב...";
 "choose range"="הצג טווח עמודים";
@@ -43,8 +43,6 @@
 "bookmark added"="הסימניה נוספה";
 "font size"="גודל פונט";
 "local search"="חיפוש מקומי";
-"about sefaria" = "<div style='text-align: right;'>ספאריה הוא ארגון ללא כוונת רווח שבונה ספריה חיה של טקסטים יהודיים מרושתים בעברית ובאנגלית. כל מה שנעשה בספאריה הוא חינם, פתוח, מבוסס טקסט ועומד לרשות הציבור. אנו גאים לתמוך ב'ובלכתך בדרך' -  ומסלולים רבים נוספים. למידע נוסף http://www.sefaria.org";
-"about sefaria short" = "אודות sefaria";
 "settings"="הגדרות";
 "history"="היסטוריה";
 "bookmarks"="סימניות";

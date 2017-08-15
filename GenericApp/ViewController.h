@@ -51,14 +51,17 @@
 @property (retain,nonatomic) NSNumber *jsonLen;
 @property (retain,nonatomic) NSArray *jsonHE;
 @property (retain,nonatomic) NSArray *jsonEN;
+@property (retain,nonatomic) NSArray *jsonSchema;
 @property (retain,nonatomic) NSDictionary *jsonREF;
-@property (retain,nonatomic) NSArray *sectionsName;
+@property (retain,nonatomic) NSMutableArray *sectionsName;
 @property (retain,nonatomic) NSArray *subindexarray;
 @property (retain,nonatomic) NSMutableArray *history;
 @property (retain,nonatomic) NSMutableArray *bookmarks;
 @property (nonatomic, retain) NSNumber * is_bavli;
 @property (nonatomic, retain) NSNumber * is_bavli_up;
 @property (retain,nonatomic) NSMutableArray *cache;
+@property (retain,nonatomic) NSMutableArray *jsonKeys;
+@property (retain,nonatomic) NSMutableDictionary *emptycache;
 
 @end
 
