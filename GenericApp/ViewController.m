@@ -235,10 +235,10 @@
                     }
                     if (_jsonLen) {
                         int l = (int)indexPath.row+1;
-                        if (_is_bavli.boolValue) {
+                        if (_is_bavli_up.boolValue) {
                             l = l + 2;
                         }
-                        [cell.textLabel setText:[self getLocalizedindex:l]];
+                        [cell.textLabel setText:[self getLocalizedindex:l bavli:_is_bavli_up.boolValue]];
                         break;
                     }
                     [cell.textLabel setText:[[_toc objectAtIndex:indexPath.row] attributeForName:@"en"].stringValue];
@@ -480,7 +480,7 @@
                     }
                     break;
                 case 1:
-                    if (_is_bavli.boolValue) {
+                    if (_is_bavli_up.boolValue) {
                         l = l + 2;
                     }
                     [_index addObject:[[NSNumber alloc] initWithInt:l]];
@@ -649,11 +649,11 @@
         NSLog(@"picker 0");
         long l = row;
         [pickerView setHidden:YES];
-        if (chap==row) {
-            return;
-        }
         if (_is_bavli.boolValue) {
             l = l + 2;
+        }
+        if (chap==l) {
+            return;
         }
         //[_index removeLastObject];
         [_index addObject:[[NSNumber alloc] initWithLong:l]];
@@ -913,10 +913,6 @@
     _jsonEN = nil;
 
     _sectionsName = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][jsonId])).intValue];
-    _is_bavli = [NSNumber numberWithBool: FALSE];
-    if ([[_sectionsName objectAtIndex:1] count] && [[[_sectionsName objectAtIndex:1] objectAtIndex:0] isEqualToString:@"Daf"]) {
-        _is_bavli = [NSNumber numberWithBool: TRUE];
-    }
 
     [self.drawerController closeDrawerAnimated:YES completion:nil];
     NSMutableArray* first = [[NSMutableArray alloc] initWithArray:_index copyItems:YES];
@@ -931,6 +927,7 @@
     }
     [[NSUserDefaults standardUserDefaults] synchronize];
     _lastindex = [_index lastObject];
+    _is_bavli = _is_bavli_up;
     [self loadJSON:jsonId array:array lang:lang updateHistory:updateHistory];
     [_index removeLastObject];
 
@@ -962,7 +959,7 @@
     for(NSNumber *i in array) {
         if (sectionsName) {
             if ([sectionsName count]) {
-                [res appendFormat:@"%@ %@-", [sectionsName objectAtIndex:0], [self getLocalizedindex:i.integerValue+1]];
+                [res appendFormat:@"%@ %@-", [sectionsName objectAtIndex:0], [self getLocalizedindex:i.integerValue+1 bavli:FALSE]];
                 [sectionsName removeObjectAtIndex:0];
             }
         }
@@ -976,7 +973,7 @@
                 }
             }
             else{
-            [res appendFormat:@"%@-", [self getLocalizedindex:i.integerValue+1]];
+            [res appendFormat:@"%@-", [self getLocalizedindex:i.integerValue+1 bavli:FALSE]];
             }
             toc = [[toc objectAtIndex:i.integerValue] elementsForName:@"node"];
         }
@@ -997,8 +994,6 @@
     if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
         _tocname = @"ובלכתך בדרך";
     }
-    _is_bavli = [NSNumber numberWithBool: FALSE];
-    _is_bavli_up = [NSNumber numberWithBool: FALSE];
     int x = 0;
     for(NSNumber *i in _index) {
         x += 1;
@@ -1125,10 +1120,10 @@
     return res;
 }
 
-- (NSString *) getLocalizedindex :(int) value {
+- (NSString *) getLocalizedindex :(int) value bavli: (bool)bavli {
     NSMutableString* res = [[NSMutableString alloc] init];
-    bool is_amud_a = value%2==0;
-    if (_is_bavli.boolValue) {
+    bool is_amud_b = value%2==0;
+    if (bavli) {
         value = (value+1)/2;
     }
     if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
@@ -1137,8 +1132,8 @@
     else {
         [res appendFormat:@"%d", value];
     }
-    if (_is_bavli.boolValue) {
-        if (is_amud_a) {
+    if (bavli) {
+        if (is_amud_b) {
             [res appendString:@":"];
         }
         else {
@@ -1463,7 +1458,7 @@
         NSArray* subindex = array;
         NSArray* sectionsNames = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][book_id])).intValue];
         for (int i=0; i < MIN([[sectionsNames objectAtIndex:0] count], [subindex count]); i++) {
-            [hename appendFormat:@" %@ %@", [[sectionsNames objectAtIndex:1] objectAtIndex:i], [self getLocalizedindex:((NSNumber*)[subindex objectAtIndex:i]).intValue]];
+            [hename appendFormat:@" %@ %@", [[sectionsNames objectAtIndex:1] objectAtIndex:i], [self getLocalizedindex:((NSNumber*)[subindex objectAtIndex:i]).intValue bavli:FALSE]];
             [enname appendFormat:@" %@ %d", [[sectionsNames objectAtIndex:0] objectAtIndex:i], ((NSNumber*)[subindex objectAtIndex:i]).intValue];
             
         }
@@ -1834,7 +1829,7 @@
             
             //
             [pasukstr appendFormat:@"<a class='psanchor' %@ name='aaa%lu'/>", psanchorstyle ,current_pas];
-            [_halachs addObject:[self getLocalizedindex:i+1]];
+            [_halachs addObject:[self getLocalizedindex:i+1 bavli:FALSE]];
             [pasukstr appendFormat:@"<xyz><span class='pscont' %@>", pscontstyle];
             if (pslen > 1 && shoulwriteps) {
                 if (hideall && (meffound || meffoundeng)) {
@@ -2245,12 +2240,16 @@
             NSLog(@"seg action 1");
             myPickerView.tag = TAG_PICKER_CHAP;
             NSMutableArray* arr = [[NSMutableArray alloc] init];
-            for (int i=1; i<=_jsonLen.intValue; i++) {
+            int len = _jsonLen.intValue;
+            if (_is_bavli.boolValue) {
+                len -= 2;
+            }
+            for (int i=1; i<=len; i++) {
                 int l = i;
                 if (_is_bavli.boolValue) {
                     l = l + 2;
                 }
-                [arr addObject:[self getLocalizedindex:l]];
+                [arr addObject:[self getLocalizedindex:l bavli:_is_bavli_up.boolValue]];
             }
             _pickerdata = arr;
             row = _lastindex.intValue;
@@ -2280,12 +2279,12 @@
     int ind = 0;
     [segmentedControl setTag:TAG_SEGMENTED_CONTORL];
     if ([_jsonHE count] && [self shouldWritePasuk]) {
-        [segmentedControl insertSegmentWithTitle:[self getLocalizedindex:1] atIndex:ind animated:NO];
+        [segmentedControl insertSegmentWithTitle:[self getLocalizedindex:1 bavli:_is_bavli.boolValue] atIndex:ind animated:NO];
         [segmentedControl setWidth:30.0 forSegmentAtIndex:0];
         ind+=1;
     }
     if (_jsonLen && [_jsonLen intValue]>1 && _lastindex) {
-        [segmentedControl insertSegmentWithTitle:[self getLocalizedindex:[_lastindex intValue]+1] atIndex:ind animated:NO];
+        [segmentedControl insertSegmentWithTitle:[self getLocalizedindex:[_lastindex intValue]+1 bavli:_is_bavli.boolValue] atIndex:ind animated:NO];
         [segmentedControl setWidth:30.0 forSegmentAtIndex:ind];
     }
     [segmentedControl addTarget:self action:@selector(segmentedAction:) forControlEvents:UIControlEventValueChanged];
