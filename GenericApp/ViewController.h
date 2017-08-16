@@ -24,7 +24,6 @@
 @property (retain,nonatomic) NSMutableArray *halachs;
 @property (retain,nonatomic) NSMutableArray *pickerdata;
 @property (retain,nonatomic) UINavigationBar *navbar;
-@property (retain,nonatomic) UINavigationBar *extnavbar;
 @property (retain,nonatomic) NSMutableArray *mefsarray;
 @property (retain,nonatomic) NSMutableArray *pasuksarray;
 @property (retain,nonatomic) UIDatePicker *datePicker;

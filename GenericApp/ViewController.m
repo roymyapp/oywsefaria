@@ -959,7 +959,7 @@
     for(NSNumber *i in array) {
         if (sectionsName) {
             if ([sectionsName count]) {
-                [res appendFormat:@"%@ %@-", [sectionsName objectAtIndex:0], [self getLocalizedindex:i.integerValue+1 bavli:FALSE]];
+                [res appendFormat:@"%@ %@-", [sectionsName objectAtIndex:0], [self getLocalizedindex:i.intValue+1 bavli:FALSE]];
                 [sectionsName removeObjectAtIndex:0];
             }
         }
@@ -969,11 +969,13 @@
                 if ([[toc objectAtIndex:i.integerValue] attributeForName:@"i"]) {
                     NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
                     [f setNumberStyle:NSNumberFormatterDecimalStyle];
-                    sectionsName =  [[NSMutableArray alloc] initWithArray: [[_config[@"section_type"] objectAtIndex:[f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"d"].stringValue].integerValue] objectAtIndex:lng_index] copyItems:YES];
+                    NSNumber* jid = [f numberFromString:[[toc objectAtIndex:i.integerValue] attributeForName:@"i"].stringValue];
+                    sectionsName =  [[NSMutableArray alloc] initWithArray:
+                                     _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][jid.stringValue])).intValue][lng_index] copyItems:YES];
                 }
             }
             else{
-            [res appendFormat:@"%@-", [self getLocalizedindex:i.integerValue+1 bavli:FALSE]];
+            [res appendFormat:@"%@-", [self getLocalizedindex:i.intValue+1 bavli:FALSE]];
             }
             toc = [[toc objectAtIndex:i.integerValue] elementsForName:@"node"];
         }
@@ -1503,6 +1505,9 @@
         long lang = [[NSUserDefaults standardUserDefaults] integerForKey:@"lang"];
         long linesmode = [[NSUserDefaults standardUserDefaults] integerForKey:@"linesmode"];
         BOOL hebrewright = [[NSUserDefaults standardUserDefaults] boolForKey:@"hebrewright"];
+        if (lang==1) {
+            linesmode = 1;
+        }
         bool multi = [[NSUserDefaults standardUserDefaults] boolForKey:@"Split"];
         bool shoulwriteps = [self shouldWritePasuk];
         bool mefref = [[NSUserDefaults standardUserDefaults] boolForKey:@"mefref"];
@@ -2032,8 +2037,6 @@
     for(NSArray* a in arr) {
         [_bookmarks addObject:[[NSMutableArray alloc] initWithArray:a]];
     }
-    _extnavbar = [[UINavigationBar alloc]initWithFrame:CGRectMake(0, 70, self.view.frame.size.width, 50)];
-    
     UIViewController * leftDrawer = [[UIViewController alloc] init];
     UIViewController * center = [[UIViewController alloc] init];
     UIViewController * rightDrawer = [[UIViewController alloc] init];
@@ -2045,9 +2048,6 @@
     _index = [[NSMutableArray alloc] initWithArray:@[]];
     _navbar = [[UINavigationBar alloc]initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 50)];
     [center.view addSubview:_navbar];
-    _extnavbar = [[UINavigationBar alloc]initWithFrame:CGRectMake(0, 70, self.view.frame.size.width, 50)];
-    [center.view addSubview:_extnavbar];
-    [_extnavbar setHidden:YES];
     [center.view addSubview:_navbar];
     MMDrawerBarButtonItem * leftDrawerButton = [[MMDrawerBarButtonItem alloc] initWithTarget:self action:@selector(leftDrawerButtonPress:)];
     UINavigationItem *navItem = [[UINavigationItem alloc] init];
@@ -2189,7 +2189,6 @@
         return;
     }
     [self.navbar setHidden:YES];
-    [_extnavbar setHidden:YES];
     [_toolbar setHidden:YES];
     [self viewDidLayoutSubviews];
     NSLog(@"select tap 2");
@@ -2206,12 +2205,8 @@
     if (self.navbar.isHidden) {
         x = 0;
     }
-    else if (!_extnavbar.isHidden) {
-        x+=50;
-    }
     _webView.frame = CGRectMake(0, x, self.view.frame.size.width, self.view.frame.size.height-x);
     _navbar.frame = CGRectMake(0, 0, self.view.frame.size.width, 70);
-    _extnavbar.frame = CGRectMake(0, 70, self.view.frame.size.width, 50);
     _toolbar.frame = CGRectMake(0,self.view.frame.size.height-50, self.view.frame.size.width, 50);
     
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"Split"] && [[NSUserDefaults standardUserDefaults] integerForKey:@"view"]==0){
@@ -2242,18 +2237,6 @@
        setGravity:iToastGravityCenter] setDuration:iToastDurationNormal] show];
 }
 
-
-- (void) extNavBarSelected :(id)sender{
-    if (_extnavbar.isHidden) {
-        [_extnavbar setHidden:NO];
-    }
-    else {
-        [_extnavbar setHidden:YES];
-    }
-    [self setNavigationBars];
-    [self viewDidLayoutSubviews];
-    
-}
 
 - (void) segmentedAction :(id)sender{
     NSLog(@"seg action");
@@ -2324,38 +2307,41 @@
     if (_jsonLen && [_jsonLen intValue]>1 && _lastindex) {
         [segmentedControl insertSegmentWithTitle:[self getLocalizedindex:[_lastindex intValue]+1 bavli:_is_bavli.boolValue] atIndex:ind animated:NO];
         [segmentedControl setWidth:30.0 forSegmentAtIndex:ind];
+        ind+=1;
     }
     [segmentedControl addTarget:self action:@selector(segmentedAction:) forControlEvents:UIControlEventValueChanged];
     UIBarButtonItem * segmentBarItem = [[UIBarButtonItem alloc] initWithCustomView: segmentedControl];
     UISegmentedControl* segmentedControl1 = [[UISegmentedControl alloc] initWithItems:[NSArray array]];
     [segmentedControl1 setMomentary:YES];
     [segmentedControl1 setTag:TAG_SEGMENTED_CONTORL_INTER_LANG];
-    [segmentedControl1 insertSegmentWithTitle:@"A" atIndex:0 animated:NO];
-    [segmentedControl1 insertSegmentWithTitle:@"Aא" atIndex:1 animated:NO];
-    [segmentedControl1 insertSegmentWithTitle:@"א" atIndex:2 animated:NO];
+    if (lang == 0)
+        [segmentedControl1 insertSegmentWithTitle:@"A" atIndex:0 animated:NO];
+    if (lang == 1)
+        [segmentedControl1 insertSegmentWithTitle:@"Aא" atIndex:0 animated:NO];
+    if (lang == 2)
+        [segmentedControl1 insertSegmentWithTitle:@"עבר" atIndex:0 animated:NO];
     [segmentedControl1 setWidth:30.0 forSegmentAtIndex:0];
-    [segmentedControl1 setWidth:30.0 forSegmentAtIndex:1];
-    [segmentedControl1 setWidth:30.0 forSegmentAtIndex:2];
-    [[segmentedControl1.subviews objectAtIndex:lang] setBackgroundColor:[UIColor lightGrayColor]];
     
     UISegmentedControl* segmentedControl2 = [[UISegmentedControl alloc] initWithItems:[NSArray array]];
     segmentedControl2 = [[UISegmentedControl alloc] initWithItems:[NSArray array]];
     [segmentedControl2 setMomentary:YES];
     [segmentedControl2 setTag:TAG_SEGMENTED_CONTORL_INTER_ALLIGN];
-    if (lang != 1 || view !=2) {
-        [segmentedControl2 insertSegmentWithTitle:@"\uf039" atIndex:0 animated:NO];
-        [segmentedControl2 insertSegmentWithTitle:@"\uf038" atIndex:1 animated:NO];
+    if (lang != 1) {
+        if (linesmode == 0)
+            [segmentedControl2 insertSegmentWithTitle:@"\uf039" atIndex:0 animated:NO];
+        if (linesmode == 1)
+            [segmentedControl2 insertSegmentWithTitle:@"\uf038" atIndex:0 animated:NO];
         [segmentedControl2 setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                   [UIFont fontWithName:@"FontAwesome" size:24.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
-        [[segmentedControl2.subviews objectAtIndex:linesmode] setBackgroundColor:[UIColor lightGrayColor]];
+                                                   [UIFont fontWithName:@"FontAwesome" size:20.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
         [segmentedControl2 addTarget:self action:@selector(segmentedLineModeAction:) forControlEvents:UIControlEventValueChanged];
     }
     else {
-        [segmentedControl2 insertSegmentWithTitle:@"\uf038\uf036" atIndex:0 animated:NO];
-        [segmentedControl2 insertSegmentWithTitle:@"\uf036\uf038" atIndex:1 animated:NO];
+        if (hebrewright == 0)
+            [segmentedControl2 insertSegmentWithTitle:@"\uf038\uf036" atIndex:0 animated:NO];
+        if (hebrewright == 1)
+            [segmentedControl2 insertSegmentWithTitle:@"\uf036\uf038" atIndex:0 animated:NO];
         [segmentedControl2 setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
                                                    [UIFont fontWithName:@"FontAwesome" size:14.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
-        [[segmentedControl2.subviews objectAtIndex:hebrewright] setBackgroundColor:[UIColor lightGrayColor]];
         [segmentedControl2 addTarget:self action:@selector(segmentedALingModeAction:) forControlEvents:UIControlEventValueChanged];
     }
     
@@ -2367,10 +2353,10 @@
     [segmentedControl3 insertSegmentWithTitle:@"\uf0D9" atIndex:0 animated:NO];
     [segmentedControl3 insertSegmentWithTitle:@"\uf0DA" atIndex:1 animated:NO];
     [segmentedControl3 setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                               [UIFont fontWithName:@"FontAwesome" size:24.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
+                                               [UIFont fontWithName:@"FontAwesome" size:20.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
     
-    [segmentedControl3 setWidth:40.0 forSegmentAtIndex:0];
-    [segmentedControl3 setWidth:40.0 forSegmentAtIndex:1];
+    [segmentedControl3 setWidth:30.0 forSegmentAtIndex:0];
+    [segmentedControl3 setWidth:30.0 forSegmentAtIndex:1];
     [segmentedControl1 addTarget:self action:@selector(segmentedLangAction:) forControlEvents:UIControlEventValueChanged];
     [segmentedControl3 addTarget:self action:@selector(segmentedArrowAction:) forControlEvents:UIControlEventValueChanged];
     UIBarButtonItem * segmentBarItem1 = [[UIBarButtonItem alloc] initWithCustomView: segmentedControl1];
@@ -2379,48 +2365,24 @@
     
     
     UIBarButtonItem * left = [[UIBarButtonItem alloc] initWithTitle:@"\uf03a " style:UIBarButtonItemStylePlain target:self action:@selector(leftDrawerButtonPress:)];
+
     [left setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                  [UIFont fontWithName:@"FontAwesome" size:24.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
-    NSString* arrowstr = @"\uf150";
-    if (!_extnavbar.isHidden) {
-        arrowstr = @"\uf151";
-    }
-    UIBarButtonItem * arrow = [[UIBarButtonItem alloc] initWithTitle:arrowstr style:UIBarButtonItemStylePlain target:self action:@selector(extNavBarSelected:)];
-    arrow.tag = TAG_DOWN_ARROW;
-    [arrow setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                   [UIFont fontWithName:@"FontAwesome" size:24.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
+                                  [UIFont fontWithName:@"FontAwesome" size:20.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
     UIBarButtonItem * bookmark = [[UIBarButtonItem alloc] initWithTitle:@"\uf005" style:UIBarButtonItemStylePlain target:self action:@selector(setBookmark:)];
     bookmark.tag = TAG_BOOKMARKS;
     [bookmark setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                   [UIFont fontWithName:@"FontAwesome" size:24.0], NSFontAttributeName, nil] forState:UIControlStateNormal];
+                                   [UIFont fontWithName:@"FontAwesome" size:20], NSFontAttributeName, nil] forState:UIControlStateNormal];
     UINavigationItem *navItem = [[UINavigationItem alloc] init];
     
-    if (self.view.frame.size.width<700) {
-        [navItem setRightBarButtonItem:segmentBarItem];
-        [navItem setLeftBarButtonItems:[NSArray arrayWithObjects:left, arrow, bookmark, nil]];
-        //[navItem setLeftBarButtonItem:[[UIBarButtonItem alloc] initWithCustomView:toolbar]];
-        [_navbar setItems:[NSArray arrayWithObject:navItem]];
-        
-        
-        
-        navItem = [[UINavigationItem alloc] init];
-        [navItem setRightBarButtonItems:[NSArray arrayWithObjects:segmentBarItem1, segmentBarItem2, nil]];
-        [navItem setLeftBarButtonItems:[NSArray arrayWithObjects:segmentBarItem3, nil]];
-        [_extnavbar setItems:[NSArray arrayWithObjects:navItem,nil]];
-        
-    }
-    else {
-        UIFont *font = [UIFont boldSystemFontOfSize:18.0f];
-        NSDictionary *attributes = [NSDictionary dictionaryWithObject:font
-                                                               forKey:NSFontAttributeName];
-        [segmentedControl setTitleTextAttributes:attributes
-                                        forState:UIControlStateNormal];
-        [_extnavbar setHidden:YES];
-        [navItem setRightBarButtonItems:[NSArray arrayWithObjects:segmentBarItem, segmentBarItem1, segmentBarItem2, nil]];
-        [navItem setLeftBarButtonItems:[NSArray arrayWithObjects:left, bookmark, segmentBarItem3, nil]];
-        [_navbar setItems:[NSArray arrayWithObject:navItem]];
-        
-    }
+    UIFont *font = [UIFont boldSystemFontOfSize:16.0f];
+    NSDictionary *attributes = [NSDictionary dictionaryWithObject:font
+                                                           forKey:NSFontAttributeName];
+    [segmentedControl setTitleTextAttributes:attributes
+                                    forState:UIControlStateNormal];
+    [navItem setRightBarButtonItems:[NSArray arrayWithObjects:segmentBarItem, segmentBarItem1, segmentBarItem2, nil]];
+    [navItem setLeftBarButtonItems:[NSArray arrayWithObjects:left, bookmark, segmentBarItem3, nil]];
+    [_navbar setItems:[NSArray arrayWithObject:navItem]];
+    
     
 }
 
@@ -2574,11 +2536,8 @@
 - (void) segmentedALingModeAction :(id)sender{
     UISegmentedControl* segmentedControl = (UISegmentedControl *)sender;
     BOOL hebrewright = [[NSUserDefaults standardUserDefaults] boolForKey:@"hebrewright"];
-    if (hebrewright == segmentedControl.selectedSegmentIndex) {
-        return;
-    }
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setInteger:segmentedControl.selectedSegmentIndex forKey: @"hebrewright"];
+    [defaults setInteger:(1 - hebrewright) forKey: @"hebrewright"];
     [defaults synchronize];
     [self saveState];
     [self loadPage];
@@ -2588,11 +2547,8 @@
 - (void) segmentedLineModeAction :(id)sender{
     UISegmentedControl* segmentedControl = (UISegmentedControl *)sender;
     long linesmode = [[NSUserDefaults standardUserDefaults] integerForKey:@"linesmode"];
-    if (linesmode == segmentedControl.selectedSegmentIndex) {
-        return;
-    }
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setInteger:segmentedControl.selectedSegmentIndex forKey: @"linesmode"];
+    [defaults setInteger:(1 - linesmode) forKey: @"linesmode"];
     [[NSUserDefaults standardUserDefaults] setInteger: 0 forKey: @"currentScroll"];
     [defaults synchronize];
     [self loadPage];
@@ -2601,11 +2557,9 @@
 - (void) segmentedLangAction :(id)sender{
     UISegmentedControl* segmentedControl = (UISegmentedControl *)sender;
     long lang = [[NSUserDefaults standardUserDefaults] integerForKey:@"lang"];
-    if (lang == segmentedControl.selectedSegmentIndex) {
-        return;
-    }
+    lang = (lang+1)%3;
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setInteger:segmentedControl.selectedSegmentIndex forKey: @"lang"];
+    [defaults setInteger:lang forKey: @"lang"];
     //[self saveState];
     [[NSUserDefaults standardUserDefaults] setInteger: 0 forKey: @"currentScroll"];
     [defaults synchronize];
