@@ -956,11 +956,13 @@
         lng_index = 1;
     }
     NSMutableArray* sectionsName = nil;
+    bool bavli = FALSE;
     for(NSNumber *i in array) {
         if (sectionsName) {
             if ([sectionsName count]) {
-                [res appendFormat:@"%@ %@-", [sectionsName objectAtIndex:0], [self getLocalizedindex:i.intValue+1 bavli:FALSE]];
+                [res appendFormat:@"%@ %@-", [sectionsName objectAtIndex:0], [self getLocalizedindex:i.intValue+1 bavli:bavli]];
                 [sectionsName removeObjectAtIndex:0];
+                bavli = FALSE;
             }
         }
         else {
@@ -970,12 +972,16 @@
                     NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
                     [f setNumberStyle:NSNumberFormatterDecimalStyle];
                     NSNumber* jid = [f numberFromString:[[toc objectAtIndex:i.integerValue] attributeForName:@"i"].stringValue];
+                    if([_config[@"bavli"] containsObject:[NSNumber numberWithInt:jid.intValue]]) {
+                        bavli = TRUE;
+                    }
                     sectionsName =  [[NSMutableArray alloc] initWithArray:
                                      _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][jid.stringValue])).intValue][lng_index] copyItems:YES];
                 }
             }
             else{
-            [res appendFormat:@"%@-", [self getLocalizedindex:i.intValue+1 bavli:FALSE]];
+                
+                [res appendFormat:@"%@-", [self getLocalizedindex:i.intValue+1 bavli:bavli]];
             }
             toc = [[toc objectAtIndex:i.integerValue] elementsForName:@"node"];
         }
