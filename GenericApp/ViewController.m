@@ -73,7 +73,7 @@
 
 #define MAX_RANGE    20
 #define MAX_HISTORY  20
-
+#define MAX_REF_CHARS 1000
 
 - (UIView *)viewWithTagNotCountingSelf:(NSInteger)tag view:(UIView *)view
 {
@@ -307,9 +307,9 @@
                         break;
                     }
                 case 1:
-                    [cell.textLabel setText:_config[@"books_index"][_mefsarray[indexPath.row]]];
+                    [cell.textLabel setText:_config[@"books_short_index"][_mefsarray[indexPath.row]]];
                     if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
-                        [cell.textLabel setText:_config[@"hebrew_long_index"][_mefsarray[indexPath.row]]];
+                        [cell.textLabel setText:_config[@"hebrew_short_index"][_mefsarray[indexPath.row]]];
                     }
                     button.text = @"\uf070";
                     if ([[NSUserDefaults standardUserDefaults] boolForKey:[[NSString alloc] initWithFormat: @"par%d",((NSNumber*)([_mefsarray objectAtIndex:indexPath.row])).intValue]]) {
@@ -1014,22 +1014,26 @@
             _nid = [f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"i"].stringValue];
             NSNumber* level = [f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"level"].stringValue];
             NSNumber* len = [f numberFromString:[[_toc objectAtIndex:i.integerValue] attributeForName:@"chaps"].stringValue];
-            _jsonLen = len;
-            if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
-                _tocname = [[_sectionsName objectAtIndex:1] objectAtIndex:0];
+            if ([_subindexarray count]<2)
+                _jsonLen = len;
+            _sectionsName = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][_nid.stringValue])).intValue];
+            if(level.intValue) {
+                if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
+                    _tocname = [[_sectionsName objectAtIndex:1] objectAtIndex:MIN(_subindexarray.count, level.intValue-1)];
+                }
+                else {
+                    _tocname = [[_sectionsName objectAtIndex:0] objectAtIndex:MIN(_subindexarray.count, level.intValue-1)];
+                }
             }
-            else {
-                _tocname = [[_sectionsName objectAtIndex:0] objectAtIndex:0];
-            }
-            if(level.intValue == 2 && _subindexarray.count == 1)
+            if(level.intValue == 2 && _subindexarray.count >= 1)
             {
-                _jsonLen = _config[_nid.stringValue][[_subindexarray[0] stringValue]];
+                _jsonLen = _config[@"length"][_nid.stringValue][((NSNumber*)_subindexarray[0]).stringValue];
             }
             if([_config[@"bavli"] containsObject:[NSNumber numberWithInt:_nid.intValue]]) {
                 _is_bavli_up = [NSNumber numberWithBool: TRUE];
             }
-            _sectionsName = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][_nid.stringValue])).intValue];
-            
+            if (!len.intValue)
+                _jsonLen = nil;
             if ([_subindexarray count] >= level.intValue){
                 [self loadJSONTOCMenu: _subindexarray jsonId:[[_toc objectAtIndex:i.integerValue] attributeForName:@"i"].stringValue lang:[[_toc objectAtIndex:i.integerValue] attributeForName:@"lang"].stringValue updateHistory: updateHistory];
             }
@@ -1407,13 +1411,16 @@
     if ([array isKindOfClass:[NSNull class]]) {
         return (NSMutableString*) [NSNull null];
     }
-    if (![array isKindOfClass:[NSString class]]) {
+    if ([array isKindOfClass:[NSString class]]) {
+        return array;
+    }
+    if ([array isKindOfClass:[NSArray class]]) {
         for(id i in (NSArray*)array){
             [res appendFormat:@"%@", [self arrayToString:i]];
         }
     }
     else {
-        [res appendFormat:@"%@", (NSString*) array];
+        NSLog(@"unknown array type");
     }
     return res;
 }
@@ -1649,7 +1656,9 @@
                 [refstr appendString:hiddenrefbut];
             }
             NSMutableSet* refset = [[NSMutableSet alloc] init];
-            for(NSArray* r in ref) {
+            @autoreleasepool {
+            for (int i=0; i<[ref count]; ++i) {
+                NSArray* r = ref[i];
                 NSMutableDictionary* refdict = [self getRefDict:r];
                 if (refdict && ![refset containsObject:refdict[@"enname"]]) {
                     NSString* enname = refdict[@"enname"];
@@ -1657,15 +1666,21 @@
                     [refset addObject:enname];
                     NSString* hecont = [self arrayToString:refdict[@"he"]];
                     NSString* encont = [self arrayToString:refdict[@"en"]];
+                    if(hecont.length >MAX_REF_CHARS)
+                        hecont = [hecont substringToIndex:MAX_REF_CHARS];
+                    if(encont.length >MAX_REF_CHARS)
+                        encont = [encont substringToIndex:MAX_REF_CHARS];
+                    if ([refset containsObject:@[hecont, encont]]){
+                        NSLog(@"duplicate %@", hename);
+                        continue;
+                    }
+                    [refset addObject:@[hecont, encont]];
                     [refstr appendFormat:@"<mef style='display:none;' class='mefrc00'>"];
                     //NSLog(@"%d", p);
                     if (lang && hecont && hecont != (NSString*)[NSNull null] && !([hecont isEqualToString:@""]) && !([hecont isEqualToString:@"<x/>"])) {
                         p=p+1;
-                        [refstr appendFormat:@"<span class='he d expander' %@>", mefhestyle];
-                        [refstr appendFormat:@"<span style='color:grey;'>%@:</span> ", hename];
-                        [refstr appendFormat:@"%@", hecont];
-                        [refstr appendFormat:@"</span>"];
-                        
+                        [refstr appendFormat:@"<span class='he d expander' %@><span style='color:grey;'>%@:</span> %@</span>",
+                         mefhestyle, hename, hecont];
                     }
                     if (lang<2 && encont && encont != (NSString*)[NSNull null] && !([encont isEqualToString:@""]) && !([encont isEqualToString:@"<x/>"])) {
                         p=p+1;
@@ -1686,12 +1701,14 @@
                     
                 }
             }
+            }
             [refstr appendFormat:@"</span>"];
             
         }
 
         for (int i=0; i < pslen; i++) {
             NSMutableString* pasukstr = [[NSMutableString alloc]init];
+            NSMutableSet* refset = [[NSMutableSet alloc] init];
             bool foundeng = NO;
             //TODO: max count
             id pasukhe = @"";
@@ -1715,8 +1732,8 @@
             
             for(NSArray* c_index in commentaries) {
                 NSString* mefnum = c_index[0];
-                NSString* enname = _config[@"books_index"][mefnum];
-                NSString* hename = _config[@"hebrew_long_index"][mefnum];
+                NSString* enname = _config[@"books_short_index"][mefnum];
+                NSString* hename = _config[@"hebrew_short_index"][mefnum];
                 NSString* hecont = nil;
                 NSString* encont = nil;
                 if([c_index[1] count] > i){
@@ -1748,6 +1765,11 @@
                     [mefstr appendFormat:@"</span>"];
                     
                 }
+                if(!hecont)
+                    hecont = @"";
+                if(!encont)
+                    encont = @"";
+                [refset addObject:@[hecont, encont]];
                 [mefstr appendFormat:@"</mef>"];
                 if (lang==1) {
                     [mefstr appendFormat:@"<div class='clear' %@></div>", clearstyle];
@@ -1785,15 +1807,20 @@
                 else{
                     [refstr appendString:hiddenrefbut];
                 }
-                NSMutableSet* refset = [[NSMutableSet alloc] init];
+                
                 for(NSArray* r in ref) {
                     NSMutableDictionary* refdict = [self getRefDict:r];
-                    if (refdict && ![refset containsObject:refdict[@"enname"]]) {
+                    if (refdict) {
                         NSString* enname = refdict[@"enname"];
                         NSString* hename = refdict[@"hename"];
-                        [refset addObject:enname];
+                        
                         NSString* hecont = [self arrayToString:refdict[@"he"]];
                         NSString* encont = [self arrayToString:refdict[@"en"]];
+                        if ([refset containsObject:@[hecont, encont]]){
+                            NSLog(@"duplicate %@", hename);
+                            continue;
+                        }
+                        //[refset addObject:@[hecont, encont]];
                         [refstr appendFormat:@"<mef style='display:none;' class='mefrc%lu'>", current_pas];
                         //NSLog(@"%d", p);
                         if (lang && hecont && ![hecont isEqual:[NSNull null]] && !([hecont isEqualToString:@""]) && ([hecont length]>0) && !([hecont isEqualToString:@"<x/>"])) {
@@ -1910,7 +1937,17 @@
         _index = [[NSMutableArray alloc] initWithArray:@[]];
         [_history removeObjectAtIndex:0];
         [_history insertObject:_index atIndex:0];
-        [self loadTOCMenu:NO];
+//        [[NSUserDefaults standardUserDefaults] setObject:_history forKey:@"history"];
+//        [[NSUserDefaults standardUserDefaults] synchronize];
+        _webView.tag = 1;
+        _loadingView.hidden = TRUE;
+        NSString *msg =  [[NSString alloc]initWithFormat:@"שגיאה בטעינה"];
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"סליחה תקלה" message:msg delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        msg =  [[NSString alloc]initWithFormat:@"שגיאה בטעינה %@", exception.reason];
+        [ZipData sendSlack:msg];
+        [alert show];
+
+        //[self loadTOCMenu:NO];
     }
     });
 
@@ -2389,7 +2426,7 @@
 
 - (void)swipeRightAction:(id)ignored
 {
-    if (!_lastindex || (_is_bavli && _lastindex.intValue == 2)) {
+    if (!_jsonLen || !_lastindex || (_is_bavli.boolValue && _lastindex.intValue == 2)) {
         return;
     }
     int i = [_lastindex intValue];
