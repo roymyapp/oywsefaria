@@ -307,9 +307,9 @@
                         break;
                     }
                 case 1:
-                    [cell.textLabel setText:_config[@"books_index"][_mefsarray[indexPath.row]][0]];
+                    [cell.textLabel setText:_config[@"books_index"][_mefsarray[indexPath.row]]];
                     if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
-                        [cell.textLabel setText:_config[@"hebrew_long_index"][_mefsarray[indexPath.row]][0]];
+                        [cell.textLabel setText:_config[@"hebrew_long_index"][_mefsarray[indexPath.row]]];
                     }
                     button.text = @"\uf070";
                     if ([[NSUserDefaults standardUserDefaults] boolForKey:[[NSString alloc] initWithFormat: @"par%d",((NSNumber*)([_mefsarray objectAtIndex:indexPath.row])).intValue]]) {
@@ -474,8 +474,9 @@
                             [self loadTOCMenu:NO];
                             return;
                         case 4: //back
-                        [_index removeLastObject];
-                        [self loadTOCMenu:NO];
+                            _is_bavli_up = [NSNumber numberWithBool: FALSE];
+                            [_index removeLastObject];
+                            [self loadTOCMenu:NO];
                         return;
                     }
                     break;
@@ -767,9 +768,6 @@
             [view removeFromSuperview];
         }
     }];
-    
-    
-    
 }
 
 - (void)loadTOCXML {
@@ -861,12 +859,16 @@
     _jsonHE = nil;
     _jsonEN = nil;
     NSMutableString* nfilePath = [[NSMutableString alloc] initWithFormat:@"%@", jsonId];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setInteger:0 forKey: @"chap"];
     for (NSNumber *n in array) {
         [nfilePath appendFormat:@".%@", n.stringValue];
+        [defaults setInteger:n.intValue forKey: @"chap"];
     }
     NSString* hefile = [[NSString alloc] initWithFormat:@"%@.he.json", nfilePath];
     NSString* enfile = [[NSString alloc] initWithFormat:@"%@.en.json", nfilePath];
     NSString* reffile = [[NSString alloc] initWithFormat:@"%@.ref.json", jsonId];
+
     if([lang isEqualToString:@"he"] || [lang isEqualToString:@"both"]) {
         _jsonHE = (NSArray *)[ZipData loadJsonData: hefile printError:YES cache:_cache empty:_emptycache];
     }
@@ -876,8 +878,9 @@
     NSDictionary* jsonRefFile = [ZipData loadJsonData: reffile printError:NO cache:_cache empty:_emptycache];
     if(jsonRefFile) {
         for(NSNumber* n in array) {
-            if([jsonRefFile objectForKey:n.stringValue]) {
-                jsonRefFile = jsonRefFile[n.stringValue];
+            NSNumber* new = [NSNumber numberWithInt: (n.intValue+1)];
+            if([jsonRefFile objectForKey:new.stringValue]) {
+                jsonRefFile = jsonRefFile[new.stringValue];
             }
             else {
                 jsonRefFile = nil;
@@ -886,9 +889,6 @@
         }
     }
     _jsonREF = jsonRefFile;
-    if ([[[_sectionsName objectAtIndex:0] objectAtIndex:0] isEqualToString:@"Daf"] && _is_bavli_up) {
-        _is_bavli = [NSNumber numberWithBool: TRUE];
-    }
     NSMutableArray* first = [[NSMutableArray alloc] initWithArray:_index copyItems:YES];
     [first addObject:[[NSNumber alloc] initWithInt:0]];
     if(updateHistory){
@@ -998,9 +998,7 @@
     for(NSNumber *i in _index) {
         x += 1;
         _tocname = [[_toc objectAtIndex:i.integerValue] attributeForName:@"en"].stringValue;
-        if ([_tocname isEqualToString:@"Bavli"]) {
-            _is_bavli_up = [NSNumber numberWithBool: TRUE];
-        }
+        _is_bavli_up = [NSNumber numberWithBool: FALSE];
         if ([[[NSLocale preferredLanguages] objectAtIndex:0] isEqualToString:@"he"]) {
             _tocname = [[_toc objectAtIndex:i.integerValue] attributeForName:@"n"].stringValue;
         }
@@ -1026,6 +1024,9 @@
             if(level.intValue == 2 && _subindexarray.count == 1)
             {
                 _jsonLen = _config[_nid.stringValue][[_subindexarray[0] stringValue]];
+            }
+            if([_config[@"bavli"] containsObject:[NSNumber numberWithInt:_nid.intValue]]) {
+                _is_bavli_up = [NSNumber numberWithBool: TRUE];
             }
             _sectionsName = _config[@"section_types"][((NSNumber*)(_config[@"book_section_type"][_nid.stringValue])).intValue];
             
@@ -1425,7 +1426,7 @@
         NSNumberFormatter *f = [[NSNumberFormatter alloc] init];
         [f setNumberStyle:NSNumberFormatterDecimalStyle];
         NSString* book_id = [arr objectAtIndex:0];
-        NSMutableString* enname = [[NSMutableString alloc] initWithString: _config[@"books_index"][book_id][0]];
+        NSMutableString* enname = [[NSMutableString alloc] initWithString: _config[@"books_index"][book_id]];
         NSMutableString* hename = [[NSMutableString alloc] initWithString: _config[@"hebrew_long_index"][book_id]];
         int level = [_config[@"level"][book_id] intValue];
         NSArray* array = [[(NSString*)arr[1] componentsSeparatedByString:@"-"][0] componentsSeparatedByString:@":"];
@@ -2388,14 +2389,14 @@
 
 - (void)swipeRightAction:(id)ignored
 {
-    if (!_lastindex) {
+    if (!_lastindex || (_is_bavli && _lastindex.intValue == 2)) {
         return;
     }
-    [[NSUserDefaults standardUserDefaults] setInteger:0 forKey: @"currentScroll"];
     int i = [_lastindex intValue];
     if (i==0) {
         return;
     }
+    [[NSUserDefaults standardUserDefaults] setInteger:0 forKey: @"currentScroll"];
     NSMutableArray* arr = [[NSMutableArray alloc] initWithArray:[_history objectAtIndex:0] copyItems:YES];
     [arr removeLastObject];
     [arr removeLastObject];
@@ -2411,11 +2412,11 @@
     if (!_lastindex) {
         return;
     }
-    [[NSUserDefaults standardUserDefaults] setInteger:0 forKey: @"currentScroll"];
     int i = [_lastindex intValue];
     if (i>=[_jsonLen intValue]-1) {
         return;
     }
+    [[NSUserDefaults standardUserDefaults] setInteger:0 forKey: @"currentScroll"];
     NSMutableArray* arr = [[NSMutableArray alloc] initWithArray:[_history objectAtIndex:0] copyItems:YES];
     [arr removeLastObject];
     [arr removeLastObject];
